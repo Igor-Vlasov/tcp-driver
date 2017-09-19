@@ -76,15 +76,16 @@
                                                 conn (tcp-pool/borrow pool host-key timeout-ms)]
 
                                                (try
-                                                 (io-f conn)
+                                                 (let [ret (io-f conn)]
+                                                   (try
+                                                     ;; return only on success, otherwise invalidation
+                                                     (tcp-pool/return pool host-key conn)
+                                                     (catch Exception e nil))
+                                                   ret)
                                                  (catch Throwable e
                                                    ;;any exception will cause invalidation of the connection.
                                                    (tcp-pool/invalidate pool host-key conn)
-                                                   (throw e))
-                                                 (finally
-                                                   (try
-                                                     (tcp-pool/return pool host-key conn)
-                                                     (catch Exception e nil))))
+                                                   (throw e)))
 
                                                (throw-no-connection!))
 
@@ -97,8 +98,7 @@
                                          (ex-info (str "Error while connecting to " host-key) {:throwable t :host host-key :retries i :hosts (routing/-hosts (:routing-policy ctx))})))]
 
                                 (if (instance? Throwable res)
-                                  (do
-                                    (error res)
+                                  (do ;; no error logging here, bother only if all retirements fail, and it's up to retry-policy
                                     (if (< i (count (routing/-hosts (:routing-policy ctx))))
                                       (recur (inc i))
                                       (throw res)))
