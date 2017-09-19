@@ -1,4 +1,4 @@
-(defproject tcp-driver "0.1.4-r1"
+(defproject tcp-driver "0.1.5-r1-SNAPSHOT"
   :description "Java/Clojure TCP Connections done right"
   :url "https://github.com/gerritjvv/tcp-driver"
   :license {:name "Eclipse Public License"
